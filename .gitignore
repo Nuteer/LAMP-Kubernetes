@@ -1,0 +1,15 @@
+# Laravel specific files and directories
+/.env
+/.env.example
+/.env.testing
+/.phpunit.result.cache
+/node_modules
+.env
+.idea
+.DS_Store
+
+# Kubernetes specific files and directories
+--k8s
+
+# CI/CD pipeline specific files and directories
+/.pipeline.jenkinsfile

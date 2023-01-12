@@ -1,0 +1,138 @@
+Resources:
+  EksCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref 'AWS::StackName'
+      RoleArn: !GetAtt EksClusterRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EksClusterSecurityGroup
+        SubnetIds:
+          - !Ref EksClusterSubnet1
+          - !Ref EksClusterSubnet2
+  EksClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonEKSClusterPolicy'
+        - 'arn:aws:iam::aws:policy/AmazonEKSServicePolicy'
+  EksClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub 'Security group for ${AWS::StackName}'
+      VpcId: !Ref Vpc
+  EksClusterSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: 'us-east-1a'
+      VpcId: !Ref Vpc
+  EksClusterSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b
+      VpcId: !Ref Vpc
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-VPC'
+  VpcCidr:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/laravel/VpcCidr'
+      Description: VPC CIDR block
+      Type: String
+      Value: '10.0.0.0/16'
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBInstanceIdentifier: !Ref 'AWS::StackName'
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterUserPassword
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+  SSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/laravel/DB_DATABASE'
+      Type: String
+      Description: Database name
+      Value: !Ref DBName
+  SSMParameter2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/laravel/DB_USERNAME'
+      Type: String
+      Description: Database username
+      Value: !Ref DBMasterUsername
+  SSMParameter3:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/laravel/DB_PASSWORD'
+      Type: SecureString
+      Description: Database password
+      Value: !Ref DBMasterUserPassword
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS instance
+      SubnetIds:
+        - !Ref EksClusterSubnet1
+        - !Ref EksClusterSubnet2
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS instance
+      VpcId: !Ref Vpc
+  DBName:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/laravel/DB_NAME'
+      Type: String
+      Description: 'The name of the database'
+      Value: 'laravel'
+  DBMasterUsername:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/laravel/DB_MASTER_USERNAME'
+      Type: String
+      Description: 'The master username of the database'
+      Value: 'root'
+  DBMasterUserPassword:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/laravel/DB_MASTER_PASSWORD'
+      Type: SecureString
+      Description: 'The master password of the database'
+      Value: 'password'
+  DBInstanceClass:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/laravel/DB_INSTANCE_CLASS'
+      Type: String
+      Description: 'The instance class of the database'
+      Value: 'db.t2.micro'
+  DBAllocatedStorage:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: '/laravel/DB_ALLOCATED_STORAGE'
+      Type: String
+      Description: 'The allocated storage of the database'
+      Value: '20'
